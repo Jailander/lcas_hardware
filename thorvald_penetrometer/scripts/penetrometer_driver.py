@@ -204,7 +204,7 @@ class PenetrometerServer(object):
                 rospy.sleep(0.05)
                 time_count+=1
         
-        self.last_response = ''.join(response)
+        self.last_response = ''.join(response).strip()
         if self.last_response == expected:
             return True
         else:
@@ -232,7 +232,7 @@ class PenetrometerServer(object):
         self.clear_reply_buf()
         self.send_command('f0')
         rospy.loginfo("clearing errors")
-        response = self.wait_for_reply('F0 ')
+        response = self.wait_for_reply('F0')
         if response:
             rospy.loginfo("Errors cleared")
         else:
