@@ -3,6 +3,7 @@ int32 order
 ---
 #result definition
 bool result
+string message
 int32[] depth
 int32[] force
 ---

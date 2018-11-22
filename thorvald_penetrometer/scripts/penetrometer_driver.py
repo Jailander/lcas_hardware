@@ -39,6 +39,7 @@ class PenetrometerServer(object):
         
         """
         self.cancelled = False
+        self.preempted = False
         self.running=True
         self.reply_buf=[]
         self.last_response = ''
@@ -328,15 +329,20 @@ class PenetrometerServer(object):
             print data_str
             
             if data_str:
-                if data_str == '!1':
-                    finished=True
-                else:
+                if data_str.startswith('*'):
+                    
                     print "appending"
                     cd=data_str.lstrip('*').split(',')
                     self.depth_data.append(int(cd[0]))
                     self.force_data.append(int(cd[1]))
+                elif data_str == '!1':
+                    finished=True                   
+                else:
+                    self.cancelled=True
+                    self._result.message = data_str
             else:
                 self.cancelled=True
+
         
         rospy.loginfo("Probe finished")
         self.send_home()
@@ -345,13 +351,24 @@ class PenetrometerServer(object):
             self._result.result = True
             self._result.depth = self.depth_data
             self._result.force = self.force_data
+            self._result.message = "All good"
             rospy.loginfo('Succeeded')
             self._as.set_succeeded(self._result)
         else:
-            self._as.set_preempted()
+            if self.preempted:
+                self._as.set_preempted()
+                self.preempted=False
+            else:
+                self._result.result = False
+                self._result.depth = self.depth_data
+                self._result.force = self.force_data
+                fmsg = 'Probe failed with code ' + self._result.message
+                rospy.loginfo(fmsg)
+                self._as.set_succeeded(self._result)
     
     def preemptCallback(self):
         self.cancelled=True
+        self.preempted=True
     
 
 if __name__ == '__main__':
