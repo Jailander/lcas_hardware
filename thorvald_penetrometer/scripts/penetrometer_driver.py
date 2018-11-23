@@ -317,6 +317,7 @@ class PenetrometerServer(object):
     def executeCallback(self, goal):
         self.cancelled=False
         finished=False
+ 
         self.depth_data=[]
         self.force_data=[]
 
@@ -324,28 +325,51 @@ class PenetrometerServer(object):
         rospy.loginfo("Probing")
         self.send_command('!1')
         while not self.cancelled and not finished:
-            print "++"
+#            print "++"
             data_str = self.get_data(timeout=15)
-            print data_str
+#            print data_str
             
             if data_str:
-                if data_str.startswith('*'):
-                    
-                    print "appending"
+                if data_str.startswith('*'):                   
+#                    print "appending"
                     cd=data_str.lstrip('*').split(',')
                     self.depth_data.append(int(cd[0]))
                     self.force_data.append(int(cd[1]))
                 elif data_str == '!1':
-                    finished=True                   
+                    finished=True
                 else:
                     self.cancelled=True
                     self._result.message = data_str
             else:
                 self.cancelled=True
 
-        
-        rospy.loginfo("Probe finished")
-        self.send_home()
+        if finished:
+            rospy.loginfo("Probe finished")
+            self.send_command('!0')
+            done = False            
+            while not self.cancelled and not done:
+                data_str = self.get_data(timeout=15)
+    #            print data_str
+                
+                if data_str:
+                    if data_str.startswith('*'):                   
+    #                    print "appending"
+                        cd=data_str.lstrip('*').split(',')
+                        self.depth_data.append(int(cd[0]))
+                        self.force_data.append(int(cd[1]))
+                    elif data_str == '!0':
+                        done=True
+                    else:
+                        self.cancelled=True
+                        self._result.message = data_str
+                else:
+                    self.cancelled=True
+        else:
+            rospy.logwarn("Something failed restarting")
+            self.clear_errors()
+            self.set_e_stop(False)
+            self.set_power_enable(True)
+            self.send_home()
         
         if not self.cancelled:
             self._result.result = True
