@@ -124,7 +124,7 @@ class PenetrometerServer(object):
         while self.running:
             if (self.ser.inWaiting()>0):                                        #if incoming bytes are waiting to be read from the serial input buffer
                 data_str = self.ser.read(self.ser.inWaiting())#.decode('ascii')  #read the bytes and convert from binary array to ASCII
-                print "|"+data_str+"|"
+                #print "|"+data_str+"|"
                 for i in data_str:
                     serial_buffer.append(i)
                 while '\n' in serial_buffer:
@@ -229,6 +229,7 @@ class PenetrometerServer(object):
             else:
                 rospy.logerr("too many fails!!")
 
+
     def clear_errors(self):
         self.clear_reply_buf()
         self.send_command('f0')
@@ -293,7 +294,7 @@ class PenetrometerServer(object):
 
 
     def get_data(self, timeout=10):
-        print "."
+        #print "."
         time_count=0
         response=''
         replied=False
@@ -313,6 +314,7 @@ class PenetrometerServer(object):
             return None
         else:
             return response
+
 
     def executeCallback(self, goal):
         self.cancelled=False
@@ -349,14 +351,12 @@ class PenetrometerServer(object):
             done = False            
             while not self.cancelled and not done:
                 data_str = self.get_data(timeout=15)
-    #            print data_str
-                
                 if data_str:
-                    if data_str.startswith('*'):                   
-    #                    print "appending"
-                        cd=data_str.lstrip('*').split(',')
-                        self.depth_data.append(int(cd[0]))
-                        self.force_data.append(int(cd[1]))
+                    if data_str.startswith('*'):
+                        pass
+#                        cd=data_str.lstrip('*').split(',')
+#                        self.depth_data.append(int(cd[0]))
+#                        self.force_data.append(int(cd[1]))
                     elif data_str == '!0':
                         done=True
                     else:
@@ -366,9 +366,21 @@ class PenetrometerServer(object):
                     self.cancelled=True
         else:
             rospy.logwarn("Something failed restarting")
+            rospy.loginfo("Clearing errors")
             self.clear_errors()
+            rospy.loginfo("Disabling E stop")
             self.set_e_stop(False)
-            self.set_power_enable(True)
+            
+            rospy.loginfo("Quering force reading")
+            self.send_command('W')
+            data_str = self.get_data(timeout=15)
+            print "got data ", data_str
+            cd=data_str.lstrip('W')
+            self.force_data.append(int(cd))
+            self.depth_data.append(self.depth_data[-1]+1)
+            #self.set_power_enable(True)
+            #rospy.loginfo("Homing")
+            rospy.sleep(1)
             self.send_home()
         
         if not self.cancelled:
@@ -389,6 +401,7 @@ class PenetrometerServer(object):
                 fmsg = 'Probe failed with code ' + self._result.message
                 rospy.loginfo(fmsg)
                 self._as.set_succeeded(self._result)
+
     
     def preemptCallback(self):
         self.cancelled=True
