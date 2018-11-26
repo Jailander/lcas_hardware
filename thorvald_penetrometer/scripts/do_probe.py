@@ -3,6 +3,8 @@
 import rospy
 #import sys
 import math
+import yaml
+
 
 import matplotlib.pyplot as plt
 import actionlib
@@ -19,7 +21,7 @@ class penetrometer_probe_client(object):
         self.client.wait_for_server()
         rospy.loginfo(" ... Init done")
     
-        probe_radius = rospy.get_param('~probe_radius', 0.0127)
+        probe_radius = rospy.get_param('~probe_radius', 0.0127/2.0)
         probe_area = math.pow(probe_radius,2)*math.pi
         kparea = 1000*probe_area
         probegoal = thorvald_penetrometer.msg.ProbeSoilGoal()
@@ -43,6 +45,18 @@ class penetrometer_probe_client(object):
             plt.plot(ps.depth, in_kpa)
             self.plotted=True
             plt.show()
+            d={}
+            d['depth']=ps.depth
+            d['newtons']=ps.force
+            d['kpa']=in_kpa
+            yml = yaml.safe_dump(d, default_flow_style=False)
+            tim = str(rospy.Time.now())+'.yaml'
+            fh = open(tim, "w")
+            s_output = str(yml)
+            fh.write(s_output)
+            fh.close()
+
+
         else:
             rospy.logerr("Probe Failed")
 

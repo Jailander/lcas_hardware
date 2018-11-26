@@ -120,9 +120,9 @@ class PenetrometerServer(object):
 
 
     def set_safety_stop(self, req):
-        rospy.wait_for_service('safety_stop')
+        rospy.wait_for_service('/base_driver/safety_stop')
         try:
-            robot_safety_stop = rospy.ServiceProxy('safety_stop', std_srvs.srv.SetBool)
+            robot_safety_stop = rospy.ServiceProxy('/base_driver/safety_stop', std_srvs.srv.SetBool)
             resp1 = robot_safety_stop(req)
             print resp1.message
             return resp1#.success
