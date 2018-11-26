@@ -2,6 +2,7 @@
 
 import rospy
 #import sys
+import math
 
 import matplotlib.pyplot as plt
 import actionlib
@@ -18,6 +19,9 @@ class penetrometer_probe_client(object):
         self.client.wait_for_server()
         rospy.loginfo(" ... Init done")
     
+        probe_radius = rospy.get_param('~probe_radius', 0.0127)
+        probe_area = math.pow(probe_radius,2)*math.pi
+        kparea = 1000*probe_area
         probegoal = thorvald_penetrometer.msg.ProbeSoilGoal()
     
     
@@ -34,7 +38,9 @@ class penetrometer_probe_client(object):
         ps = self.client.get_result()  # A FibonacciResult
         print ps
         if ps.result:
-            plt.plot(ps.depth, ps.force)
+            to_kpa = lambda newts : newts/kparea
+            in_kpa = [to_kpa(x) for x in ps.force]
+            plt.plot(ps.depth, in_kpa)
             self.plotted=True
             plt.show()
         else:

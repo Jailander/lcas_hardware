@@ -45,7 +45,8 @@ class PenetrometerServer(object):
         self.last_response = ''
         self.config={}
         
-        self.serial_port = rospy.get_param('~serial_port', '/dev/ttyACM0')     
+        self.serial_port = rospy.get_param('~serial_port', '/dev/ttyACM0') 
+        self.use_robot_stop = rospy.get_param('~use_robot_stop', True) 
 
         rospy.loginfo("opening serial port")
         self.ser = serial.Serial(self.serial_port, 57600, timeout=0, parity=serial.PARITY_NONE)
@@ -69,6 +70,7 @@ class PenetrometerServer(object):
         s = rospy.Service(sname, std_srvs.srv.Trigger, self.save_params)
         sname=name+'/clear_errors'
         s1 = rospy.Service(sname, std_srvs.srv.Trigger, self.clear_errors_req)
+
 
 
         rospy.loginfo("initialising device done ...")
@@ -116,6 +118,16 @@ class PenetrometerServer(object):
         fh.write(s_output)
         fh.close()
 
+
+    def set_safety_stop(self, req):
+        rospy.wait_for_service('safety_stop')
+        try:
+            robot_safety_stop = rospy.ServiceProxy('safety_stop', std_srvs.srv.SetBool)
+            resp1 = robot_safety_stop(req)
+            print resp1.message
+            return resp1#.success
+        except rospy.ServiceException, e:
+            print "Service call failed: %s"%e
 
 
     def read_from_port(self):
@@ -287,9 +299,11 @@ class PenetrometerServer(object):
         response = self.wait_for_reply('Z1', timeout=120)
         if response:
             rospy.loginfo("Homed")
+            return True
         else:
             rospy.logerr("Something failed, response code (%s)" %self.last_response)
-            rospy.loginfo("Maybe, try send home service again?")        
+            rospy.loginfo("Maybe, try send home service again?")
+            return False
 
 
 
@@ -322,6 +336,11 @@ class PenetrometerServer(object):
  
         self.depth_data=[]
         self.force_data=[]
+
+        if self.use_robot_stop:
+            rospy.loginfo("Setting robot stop")
+            self.set_safety_stop(True)
+            
 
         self.clear_reply_buf()
         rospy.loginfo("Probing")
@@ -364,6 +383,8 @@ class PenetrometerServer(object):
                         self._result.message = data_str
                 else:
                     self.cancelled=True
+            
+
         else:
             rospy.logwarn("Something failed restarting")
             rospy.loginfo("Clearing errors")
@@ -401,6 +422,17 @@ class PenetrometerServer(object):
                 fmsg = 'Probe failed with code ' + self._result.message
                 rospy.loginfo(fmsg)
                 self._as.set_succeeded(self._result)
+
+
+        #I should 
+        rospy.sleep(0.5)
+        at_home = self.send_home()
+        if self.use_robot_stop and at_home:
+            rospy.loginfo("Unsetting robot stop")
+            self.set_safety_stop(False)
+        elif not at_home:
+            rospy.logerr("Will not unset robot safety stop because brobe is not at home")
+
 
     
     def preemptCallback(self):
