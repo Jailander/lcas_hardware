@@ -22,6 +22,8 @@ class penetrometer_probe_client(object):
         self.client.wait_for_server()
         rospy.Subscriber("/joy", Joy, self.joy_callback)
         rospy.loginfo(" ... Init done")
+        rospy.spin()
+        
     
     def joy_callback(self, data):
         if data.buttons[7] and not self.probing:
