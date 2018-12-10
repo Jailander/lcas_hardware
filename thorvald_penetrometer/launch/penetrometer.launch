@@ -4,7 +4,7 @@
 
     <arg name="port" default="/dev/ttyACM0"/>
 
-    <node pkg="thorvald_penetrometer" type="penetrometer_driver.py" name="thorvald_penetrometer">
+    <node pkg="thorvald_penetrometer" type="penetrometer_driver.py" name="thorvald_penetrometer" respawn="true">
 	<param name="serial_port" type="str" value="$(arg port)" />
         <rosparam file="$(find thorvald_penetrometer)/cfg/penetrometer_params.yaml" command="load"/>
     </node>
