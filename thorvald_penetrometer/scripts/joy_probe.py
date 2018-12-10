@@ -68,25 +68,26 @@ class penetrometer_probe_client(object):
         # Prints out the result of executing the action
         ps = self.client.get_result()  # A FibonacciResult
         print ps
-        if ps.result:
-            to_kpa = lambda newts : newts/kparea
-            in_kpa = [to_kpa(x) for x in ps.force]
-            #plt.plot(ps.depth, in_kpa)
-            #self.plotted=True
-            #plt.show()
-            d={}
-            d['depth']=ps.depth
-            d['newtons']=ps.force
-            d['kpa']=in_kpa
-            yml = yaml.safe_dump(d, default_flow_style=False)
-            tim = str(rospy.Time.now())+'.yaml'
-            fh = open(tim, "w")
-            s_output = str(yml)
-            fh.write(s_output)
-            fh.close()
+
+        to_kpa = lambda newts : newts/kparea
+        in_kpa = [to_kpa(x) for x in ps.force]
+        #plt.plot(ps.depth, in_kpa)
+        #self.plotted=True
+        #plt.show()
+        d={}
+        d['depth']=ps.depth
+        d['newtons']=ps.force
+        d['kpa']=in_kpa
+        d['result']= ps.result
+        yml = yaml.safe_dump(d, default_flow_style=False)
+        tim = str(rospy.Time.now())+'.yaml'
+        fh = open(tim, "w")
+        s_output = str(yml)
+        fh.write(s_output)
+        fh.close()
 
 
-        else:
+        if not ps.result:
             rospy.logerr("Probe Failed")
 
         self.probing=False
