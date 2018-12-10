@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-
+import os
 import rospy
 #import sys
 import math
@@ -11,11 +11,15 @@ import actionlib
 import thorvald_penetrometer.msg
 from sensor_msgs.msg import Joy
 
+
+
 class penetrometer_probe_client(object):
     
     def __init__(self) :
+        self.predata =None
         self.plotted=False
         self.probing=False
+        self.resseting=False
         rospy.on_shutdown(self._on_node_shutdown)
         self.client = actionlib.SimpleActionClient('/thorvald_penetrometer', thorvald_penetrometer.msg.ProbeSoilAction)
         
@@ -26,8 +30,23 @@ class penetrometer_probe_client(object):
         
     
     def joy_callback(self, data):
-        if data.buttons[7] and not self.probing:
-            self.do_probe()
+        
+        if self.predata:
+            if data.buttons[7] and not self.predata.buttons[7]: 
+                if not self.probing:
+                    print "probing"
+                    self.do_probe()
+            if data.buttons[8] and not self.predata.buttons[8]:
+                if not self.resseting:
+                    self.reset_penetrometer()
+        self.predata=data
+    
+    
+    def reset_penetrometer(self):    
+        self.resseting=True
+        os.system("rosnode kill /thorvald_penetrometer")
+        rospy.sleep(10)
+        self.resseting=False
     
     def do_probe(self):
         self.probing=True
@@ -71,6 +90,7 @@ class penetrometer_probe_client(object):
             rospy.logerr("Probe Failed")
 
         self.probing=False
+
 
     def _on_node_shutdown(self):
         self.client.cancel_all_goals()
