@@ -82,6 +82,7 @@ class penetrometer_probe_client(object):
         yml = yaml.safe_dump(d, default_flow_style=False)
         tim = str(rospy.Time.now())+'.yaml'
         fh = open(tim, "w")
+        rospy.loginfo("SAVING")
         s_output = str(yml)
         fh.write(s_output)
         fh.close()
