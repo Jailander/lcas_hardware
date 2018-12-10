@@ -9,6 +9,7 @@
         <rosparam file="$(find thorvald_penetrometer)/cfg/penetrometer_params.yaml" command="load"/>
     </node>
 
+    <node pkg="thorvald_penetrometer" type="joy_probe.py" name="joy_probe"/>
     <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure"/>
 </launch>
 
