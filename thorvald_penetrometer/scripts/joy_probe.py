@@ -36,7 +36,7 @@ class penetrometer_probe_client(object):
                 if not self.probing:
                     print "probing"
                     self.do_probe()
-            if data.buttons[8] and not self.predata.buttons[8]:
+            if data.buttons[6] and not self.predata.buttons[6]:
                 if not self.resseting:
                     self.reset_penetrometer()
         self.predata=data
