@@ -30,6 +30,7 @@ class penetrometer_probe_client(object):
         rospy.Subscriber("/joy", Joy, self.joy_callback)
         rospy.Subscriber("/rtk_fix", NavSatFix, self.fix_callback)
         rospy.Subscriber("/current_node", String, self.node_callback)
+        self.pub = rospy.Publisher("/scanned_node", String)
         rospy.loginfo(" ... Init done")
         rospy.spin()
         
@@ -96,15 +97,15 @@ class penetrometer_probe_client(object):
             d['coord']['lat']= self.last_fix.latitude
             d['coord']['lon']= self.last_fix.longitude
         d['timestamp']=tim
-        d['node']=self.current_node
+        d['node']=str(self.current_node.data)
         yml = yaml.safe_dump(d, default_flow_style=False)
-        fim = self.current_node+'-'+tim+'.yaml'
+        fim = str(self.current_node.data)+'-'+tim+'.yaml'
         fh = open(fim, "w")
         rospy.loginfo("SAVING")
         s_output = str(yml)
         fh.write(s_output)
         fh.close()
-
+        self.pub.publish(self.current_node.data)
 
         if not ps.result:
             rospy.logerr("Probe Failed")
