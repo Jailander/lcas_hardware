@@ -23,6 +23,10 @@ class penetrometer_probe_client(object):
         rospy.on_shutdown(self._on_node_shutdown)
         self.client = actionlib.SimpleActionClient('/thorvald_penetrometer', thorvald_penetrometer.msg.ProbeSoilAction)
         
+
+        rospy.Subscriber("/navsat_fix", NavSatFix, self.gps_callback)
+        self.krig_data_pub = rospy.Publisher('/kriging_data', KrigInfo, latch=False, queue_size=1)
+        
         self.client.wait_for_server()
         rospy.Subscriber("/joy", Joy, self.joy_callback)
         rospy.loginfo(" ... Init done")
