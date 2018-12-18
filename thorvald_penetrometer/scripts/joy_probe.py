@@ -11,7 +11,8 @@ import actionlib
 import thorvald_penetrometer.msg
 from sensor_msgs.msg import Joy
 
-
+from sensor_msgs.msg import NavSatFix
+from std_msgs.msg import String
 
 class penetrometer_probe_client(object):
     
@@ -19,6 +20,8 @@ class penetrometer_probe_client(object):
         self.predata =None
         self.plotted=False
         self.probing=False
+        self.last_fix=None
+        self.current_node='none'
         self.resseting=False
         rospy.on_shutdown(self._on_node_shutdown)
         self.client = actionlib.SimpleActionClient('/thorvald_penetrometer', thorvald_penetrometer.msg.ProbeSoilAction)
@@ -29,9 +32,18 @@ class penetrometer_probe_client(object):
         
         self.client.wait_for_server()
         rospy.Subscriber("/joy", Joy, self.joy_callback)
+        rospy.Subscriber("/rtk_fix", NavSatFix, self.fix_callback)
+        rospy.Subscriber("/current_node", String, self.node_callback)
+        self.pub = rospy.Publisher("/scanned_node", String)
         rospy.loginfo(" ... Init done")
         rospy.spin()
         
+    
+    def node_callback(self, data):
+        self.current_node=data
+        
+    def fix_callback(self, data):
+        self.last_fix=data
     
     def joy_callback(self, data):
         
@@ -83,14 +95,21 @@ class penetrometer_probe_client(object):
         d['newtons']=ps.force
         d['kpa']=in_kpa
         d['result']= ps.result
+        tim = str(rospy.Time.now())
+        if self.last_fix:
+            d['coord']={}
+            d['coord']['lat']= self.last_fix.latitude
+            d['coord']['lon']= self.last_fix.longitude
+        d['timestamp']=tim
+        d['node']=str(self.current_node.data)
         yml = yaml.safe_dump(d, default_flow_style=False)
-        tim = str(rospy.Time.now())+'.yaml'
-        fh = open(tim, "w")
+        fim = str(self.current_node.data)+'-'+tim+'.yaml'
+        fh = open(fim, "w")
         rospy.loginfo("SAVING")
         s_output = str(yml)
         fh.write(s_output)
         fh.close()
-
+        self.pub.publish(self.current_node.data)
 
         if not ps.result:
             rospy.logerr("Probe Failed")

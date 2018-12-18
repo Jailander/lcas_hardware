@@ -9,7 +9,7 @@ max_force: 1000
 max_force_delta: 1000
 min_force: -1000
 min_force_delta: -1000
-probe_depth: 200
+probe_depth: 450
 safe_disconnect: false
 speed: 50
 top_speed: 62
