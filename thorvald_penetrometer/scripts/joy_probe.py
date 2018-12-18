@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 import os
+import numpy as np
 import rospy
 #import sys
 import math
@@ -13,6 +14,10 @@ from sensor_msgs.msg import Joy
 
 from sensor_msgs.msg import NavSatFix
 from std_msgs.msg import String
+from cosmos_msgs.msg import KrigInfo
+from cosmos_msgs.msg import KrigMsg
+
+
 
 class penetrometer_probe_client(object):
     
@@ -116,6 +121,43 @@ class penetrometer_probe_client(object):
 
         self.probing=False
 
+
+    def publish_kriging_data(self, data_dict):
+        self.publish_kriging_data.seq_counter = getattr(self.publish_kriging_data, 'seq_counter', 0) + 1
+        d_points=range(250,4501,250)
+        names=[str(x/100.0)+' cm' for x in d_points]
+        krig_msg = KrigInfo()
+        krig_msg.header.seq = self.publish_kriging_data.seq_counter
+        krig_msg.header.stamp = rospy.Time.now()
+        
+        d_ind=[]
+        forces=[]
+        for i in d_points:
+            if i <= max(data_dict['depth']):
+                d_ind.append(data_dict['depth'].index(i))
+
+        kpa_correction_factor = np.average(data_dict['kpa'][:d_ind[0]])
+        for j in range(1,len(d_ind)):
+            force=np.abs(np.average(data_dict['kpa'][d_ind[j-1]:d_ind[j]])-kpa_correction_factor)
+            #print a['depth'][d_ind[j-1]], a['depth'][d_ind[j]], force 
+            forces.append(float(force))
+    
+        if len(forces) < len(d_points):
+            for i in range(len(d_points)-len(forces)):
+                forces.append(0.0)
+    
+        for i in range(len(forces)):
+            kinfo = KrigMsg()
+            kinfo.model_name = names[i]
+            kinfo.measurement = forces[i]
+            krig_msg.data.append(kinfo)
+        
+        self.krig_data_pub.publish(krig_msg)
+        
+        
+        
+        
+        
 
     def _on_node_shutdown(self):
         self.client.cancel_all_goals()
